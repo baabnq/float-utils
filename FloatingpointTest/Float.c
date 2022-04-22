@@ -10,19 +10,21 @@
 #include "Float.h"
 #include <stdio.h>
 
-char getMantissa(float16 fpValue)
+unsigned char getMantissa(float16 fpValue)
 {
-	return (char)(fpValue & MANTISSA_MASK);
+	return (char)((fpValue & MANTISSA_MASK) | 1 << (MANTISSA_SIZE - 1));
 
 }
 
 char getExponent(float16 fpValue)
 {
-	return (char)((fpValue >> MANTISSA_SIZE) & EXPONENT_MASK);
+	return (char)((fpValue >> (MANTISSA_SIZE - 1)) & EXPONENT_MASK);
 
 }
 
-void setMantissa(float16* fpValue, float16 newValue)
+//the MANTISSA_SIZE is the virtual size of the mantissa
+//MANTISSA_SIZE - 1 bits are actually being stored
+void setMantissa(float16* fpValue, unsigned char newValue)
 {
 	//clear mantissa
 	*fpValue &= ~MANTISSA_MASK;
@@ -31,19 +33,31 @@ void setMantissa(float16* fpValue, float16 newValue)
 	*fpValue |= newValue & MANTISSA_MASK;
 }
 
-void setExponent(float16* fpValue, float16 newValue)
+void setExponent(float16* fpValue, char newValue)
 {
 	//clear exponent
-	*fpValue &= ~(EXPONENT_MASK << MANTISSA_SIZE);
+	*fpValue &= ~(EXPONENT_MASK << (MANTISSA_SIZE - 1));
 
 	//set new value
-	*fpValue |= (newValue & EXPONENT_MASK) << MANTISSA_SIZE;
+	*fpValue |= (newValue & EXPONENT_MASK) << (MANTISSA_SIZE - 1);
 }
 
 
-void inv(short* value)
+void invValue(char* value)
 {
 	*value = ~(*value) + 1;
+
+}
+
+void invExponent(float16* fpValue)
+{
+	setExponent(fpValue, (~getExponent(*fpValue)) + 1);
+
+}
+
+void reci(float16* value)
+{
+
 
 }
 
@@ -51,31 +65,28 @@ void inv(short* value)
 float16 value2fp(short value)
 {
 	float16 output = 0;
-
 	char exponent = 0;
+
 	while (value >> MANTISSA_SIZE)
 	{
 		value >>= 1;
 		exponent += 1;
 	}
 
-	setMantissa(&output, value);
-	setExponent(&output, exponent);
-
-	normalize(&output);
+	normalizeAndSet(&output, value, exponent);
 	return output;
 	
 }
 
 short fp2value(float16 fpValue)
 {
-	short exponent = (short)getExponent(fpValue);
-	short mantissa = (short)getMantissa(fpValue);
+	unsigned char mantissa = getMantissa(fpValue);
+	         char exponent = getExponent(fpValue);
 	short output = 0;
 
 	if (exponent < 0)
 	{
-		inv(&exponent);
+		invValue(&exponent);
 		output = (mantissa >> exponent);
 	}
 	else
@@ -83,16 +94,14 @@ short fp2value(float16 fpValue)
 		output = (mantissa << exponent);
 	}
 
-	return (short)output;
+	printf("output: %d\n", output);
+	return output;
 }
 
 
 
-void normalize(float16* fpValue)
+void normalizeAndSet(float16* fpValue, unsigned char mantissa, char exponent)
 {
-	char mantissa = getMantissa(*fpValue);
-	char exponent = getExponent(*fpValue);
-
 	while (!(mantissa >> (MANTISSA_SIZE - 1)))
 	{
 		mantissa <<= 1;
@@ -130,8 +139,8 @@ float16 add(float16 val1, float16 val2)
 	short valLowMantissaMod = (short)getMantissa(valLow) >> deltaExponent;
 
 	//apply the sign
-	if (valLow & SIGN_MASK) inv(&valLowMantissaMod);
-	if (valBig & SIGN_MASK) inv(&valBigMantissaMod);
+	if (valLow & SIGN_MASK) invValue(&valLowMantissaMod);
+	if (valBig & SIGN_MASK) invValue(&valBigMantissaMod);
 
 	//do the addition
 	short outputMantissa = valBigMantissaMod + valLowMantissaMod;
@@ -141,7 +150,7 @@ float16 add(float16 val1, float16 val2)
 	if (outputMantissa & SIGN_MASK)
 	{
 		outputSign = 1;
-		inv(&outputMantissa);
+		invValue(&outputMantissa);
 
 	}
 
@@ -153,13 +162,8 @@ float16 add(float16 val1, float16 val2)
 	}
 
 	float16 output = 0;
-	setExponent(&output, outputExponent);
-	setMantissa(&output, (char)outputMantissa);
+	normalizeAndSet(&output, (char)outputMantissa, outputExponent);
 	if (outputSign) output |= SIGN_MASK;
-
-	normalize(&output);
 	return output;
 
 }
-
-
