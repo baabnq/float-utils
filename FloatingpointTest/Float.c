@@ -10,6 +10,19 @@
 #include "Float.h"
 #include <stdio.h>
 
+
+
+void printFp(float16 value)
+{
+	printf("Mantissa: %x\n", getMantissa(value));
+	printf("Exponent: %d\n", getExponent(value));
+	printf("Sign    : %x\n", value & SIGN_MASK ? 1 : 0);
+	printf("\n");
+
+}
+
+
+
 unsigned char getMantissa(float16 fpValue)
 {
 	return (char)((fpValue & MANTISSA_MASK) | 1 << (MANTISSA_SIZE - 1));
@@ -42,24 +55,25 @@ void setExponent(float16* fpValue, char newValue)
 	*fpValue |= (newValue & EXPONENT_MASK) << (MANTISSA_SIZE - 1);
 }
 
-
-void invValue(char* value)
+void invChar(char* value)
 {
 	*value = ~(*value) + 1;
-
+}
+void invShort(short* value)
+{
+	*value = ~(*value) + 1;
 }
 
+
+
+
+/*
 void invExponent(float16* fpValue)
 {
 	setExponent(fpValue, (~getExponent(*fpValue)) + 1);
 
 }
-
-void reci(float16* value)
-{
-
-
-}
+*/
 
 
 float16 value2fp(short value)
@@ -86,7 +100,7 @@ short fp2value(float16 fpValue)
 
 	if (exponent < 0)
 	{
-		invValue(&exponent);
+		invChar(&exponent);
 		output = (mantissa >> exponent);
 	}
 	else
@@ -94,7 +108,6 @@ short fp2value(float16 fpValue)
 		output = (mantissa << exponent);
 	}
 
-	printf("output: %d\n", output);
 	return output;
 }
 
@@ -102,15 +115,23 @@ short fp2value(float16 fpValue)
 
 void normalizeAndSet(float16* fpValue, unsigned char mantissa, char exponent)
 {
-	while (!(mantissa >> (MANTISSA_SIZE - 1)))
+	if (mantissa)
 	{
-		mantissa <<= 1;
-		exponent -= 1;
+		while (!(mantissa >> (MANTISSA_SIZE - 1)))
+		{
+			mantissa <<= 1;
+			exponent -= 1;
+		}
+
+		setMantissa(fpValue, mantissa);
+		setExponent(fpValue, exponent);
 	}
+	else
+	{
+		setMantissa(fpValue, 0);
+		setExponent(fpValue, MIN_SIGNED_CHAR);
 
-	setMantissa(fpValue, mantissa);
-	setExponent(fpValue, exponent);
-
+	}
 }
 
 
@@ -130,17 +151,18 @@ float16 add(float16 val1, float16 val2)
 		valLow = val2;
 	}
 
-
 	char outputExponent = getExponent(valBig);
 	char deltaExponent  = outputExponent - getExponent(valLow);
+
+
 
 	//cast to short for the addition to catch carry
 	short valBigMantissaMod = (short)getMantissa(valBig);
 	short valLowMantissaMod = (short)getMantissa(valLow) >> deltaExponent;
 
 	//apply the sign
-	if (valLow & SIGN_MASK) invValue(&valLowMantissaMod);
-	if (valBig & SIGN_MASK) invValue(&valBigMantissaMod);
+	if (valLow & SIGN_MASK) invShort(&valLowMantissaMod);
+	if (valBig & SIGN_MASK) invShort(&valBigMantissaMod);
 
 	//do the addition
 	short outputMantissa = valBigMantissaMod + valLowMantissaMod;
@@ -150,12 +172,12 @@ float16 add(float16 val1, float16 val2)
 	if (outputMantissa & SIGN_MASK)
 	{
 		outputSign = 1;
-		invValue(&outputMantissa);
+		invShort(&outputMantissa);
 
 	}
 
 	//check for carry overflow
-	if (outputMantissa & 1 << MANTISSA_SIZE)
+	if (outputMantissa & (1 << MANTISSA_SIZE))
 	{
 		outputMantissa >>= 1;
 		outputExponent += 1;
@@ -166,4 +188,25 @@ float16 add(float16 val1, float16 val2)
 	if (outputSign) output |= SIGN_MASK;
 	return output;
 
+}
+
+
+float16 mul(float16 val1, float16 val2)
+{
+	short val1Mantissa = (short)getMantissa(val1);
+	short val2Mantissa = (short)getMantissa(val2);
+
+	         short outputExponent = getExponent(val1) + getExponent(val2);
+	unsigned short outputMantissa = val1Mantissa * val2Mantissa;
+
+	//move the outputMantissa back till it fit back into the char, in the process discarding the precision the we can't keep
+	while ((unsigned)outputMantissa > (1 << MANTISSA_SIZE) - 1)
+	{
+		outputMantissa >>= 1;
+		outputExponent += 1;
+	}
+
+	float16 output = 0;
+	normalizeAndSet(&output, outputMantissa, outputExponent);
+	return output;
 }

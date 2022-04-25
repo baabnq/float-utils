@@ -4,14 +4,6 @@
 
 
 
-void printFp(float16 value)
-{
-	printf("Mantissa: %x\n", getMantissa(value));
-	printf("Exponent: %x\n", getExponent(value));
-	printf("Sign    : %x\n", value & SIGN_MASK ? 1 : 0);
-	printf("\n");
-
-}
 
 
 
@@ -19,14 +11,12 @@ void printFp(float16 value)
 int main()
 {
 
+	float16 a = value2fp(1000);
+	float16 b = value2fp(1000);
 
-	float16 fp1 = value2fp(10);
-	float16 fp2 = value2fp(5);
+	float16 c = mul(a, b);
 
-	float16 test = add(fp1, fp2);
-
-	printFp(test);
-	printf("%d\n", fp2value(test));
+	printFp(c);
 
 
 	return 0;
