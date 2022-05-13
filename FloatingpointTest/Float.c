@@ -76,7 +76,7 @@ void invExponent(float16* fpValue)
 */
 
 
-float16 value2fp(short value)
+float16 value2fp(unsigned short value)
 {
 	float16 output = 0;
 	char exponent = 0;
@@ -113,9 +113,12 @@ short fp2value(float16 fpValue)
 
 
 
-void normalizeAndSet(float16* fpValue, unsigned char mantissa, char exponent)
+void normalizeAndSet(float16* fpValue, unsigned char mantissa, short exponent)
 {
-	if (mantissa)
+	if ((exponent & upper16) && !((exponent & upper16) == upper16))
+		*fpValue = posNaN;
+
+	else if (mantissa)
 	{
 		while (!(mantissa >> (MANTISSA_SIZE - 1)))
 		{
@@ -207,6 +210,31 @@ float16 mul(float16 val1, float16 val2)
 	}
 
 	float16 output = 0;
+
 	normalizeAndSet(&output, outputMantissa, outputExponent);
 	return output;
+}
+
+
+//does val1 / val2
+float16 div(float16 val1, float16 val2)
+{
+	short val1Mantissa = (short)getMantissa(val1);
+	short val2Mantissa = (short)getMantissa(val2);
+
+	short outputExponent = getExponent(val1) - getExponent(val2);
+	unsigned short outputMantissa = val1Mantissa / val2Mantissa;
+
+	//move the outputMantissa back till it fit back into the char, in the process discarding the precision the we can't keep
+	while ((unsigned)outputMantissa > (1 << MANTISSA_SIZE) - 1)
+	{
+		outputMantissa >>= 1;
+		outputExponent += 1;
+	}
+
+	float16 output = 0;
+	normalizeAndSet(&output, outputMantissa, outputExponent);
+	return output;
+
+
 }
