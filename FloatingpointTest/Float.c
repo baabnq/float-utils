@@ -9,16 +9,23 @@
 
 #include "Float.h"
 #include <stdio.h>
-
+#include <math.h>
 
 
 void printFp(float16 value)
 {
-	printf("Mantissa: %x\n", getMantissa(value));
+	printf("Mantissa: %d\n", getMantissa(value));
 	printf("Exponent: %d\n", getExponent(value));
-	printf("Sign    : %x\n", value & SIGN_MASK ? 1 : 0);
+	printf("Sign    : %d\n", value & SIGN_MASK ? 1 : 0);
 	printf("\n");
 
+	unsigned char man = getMantissa(value);
+	         char exp = getExponent(value);
+
+	float absVal = man * pow(2.0f, exp);
+	float val = value & SIGN_MASK ? -absVal : absVal;
+
+	printf("Value: %f\n", val);
 }
 
 
@@ -64,6 +71,17 @@ void invShort(short* value)
 	*value = ~(*value) + 1;
 }
 
+//fpValue >>= offset;
+void shs(float16* fpValue, short offset)
+{
+	setExponent(fpValue, getExponent(*fpValue) - offset);
+}
+
+//fpValue <<= offset;
+void shg(float16* fpValue, short offset)
+{
+	setExponent(fpValue, getExponent(*fpValue) + offset);
+}
 
 
 
@@ -95,19 +113,20 @@ float16 value2fp(unsigned short value)
 short fp2value(float16 fpValue)
 {
 	unsigned char mantissa = getMantissa(fpValue);
-	         char exponent = getExponent(fpValue);
+	  signed char exponent = getExponent(fpValue);
 	short output = 0;
 
 	if (exponent < 0)
 	{
-		invChar(&exponent);
-		output = (mantissa >> exponent);
+		output = (mantissa >> (-exponent));
+
 	}
 	else
 	{
 		output = (mantissa << exponent);
 	}
 
+	if (fpValue & SIGN_MASK) output = -output;
 	return output;
 }
 
@@ -140,9 +159,9 @@ void normalizeAndSet(float16* fpValue, unsigned char mantissa, short exponent)
 
 float16 add(float16 val1, float16 val2)
 {
-
 	float16 valLow = 0;
 	float16 valBig = 0;
+
 	if (getExponent(val1) < getExponent(val2))
 	{
 		valBig = val2;
@@ -156,8 +175,6 @@ float16 add(float16 val1, float16 val2)
 
 	char outputExponent = getExponent(valBig);
 	char deltaExponent  = outputExponent - getExponent(valLow);
-
-
 
 	//cast to short for the addition to catch carry
 	short valBigMantissaMod = (short)getMantissa(valBig);
@@ -186,9 +203,11 @@ float16 add(float16 val1, float16 val2)
 		outputExponent += 1;
 	}
 
+
 	float16 output = 0;
 	normalizeAndSet(&output, (char)outputMantissa, outputExponent);
 	if (outputSign) output |= SIGN_MASK;
+
 	return output;
 
 }
@@ -202,6 +221,8 @@ float16 mul(float16 val1, float16 val2)
 	         short outputExponent = getExponent(val1) + getExponent(val2);
 	unsigned short outputMantissa = val1Mantissa * val2Mantissa;
 
+	short sign = (val1 & SIGN_MASK) ^ (val2 & SIGN_MASK);
+
 	//move the outputMantissa back till it fit back into the char, in the process discarding the precision the we can't keep
 	while ((unsigned)outputMantissa > (1 << MANTISSA_SIZE) - 1)
 	{
@@ -212,29 +233,56 @@ float16 mul(float16 val1, float16 val2)
 	float16 output = 0;
 
 	normalizeAndSet(&output, outputMantissa, outputExponent);
-	return output;
+	return output | (sign ? SIGN_MASK : 0);
 }
 
 
 //does val1 / val2
 float16 div(float16 val1, float16 val2)
 {
-	short val1Mantissa = (short)getMantissa(val1);
-	short val2Mantissa = (short)getMantissa(val2);
+	unsigned short val1Mantissa = ((short)getMantissa(val1)) << 8;
+	unsigned short val2Mantissa = (short)getMantissa(val2);
 
-	short outputExponent = getExponent(val1) - getExponent(val2);
+	short val1Exponent = getExponent(val1) - 8;
+	short val2Exponent = getExponent(val2);
+	printf("%d\n", val1Exponent);
+	printf("%d\n", val2Exponent);
+
+	short outputExponent = val1Exponent - val2Exponent;
 	unsigned short outputMantissa = val1Mantissa / val2Mantissa;
-
-	//move the outputMantissa back till it fit back into the char, in the process discarding the precision the we can't keep
-	while ((unsigned)outputMantissa > (1 << MANTISSA_SIZE) - 1)
-	{
-		outputMantissa >>= 1;
-		outputExponent += 1;
-	}
 
 	float16 output = 0;
 	normalizeAndSet(&output, outputMantissa, outputExponent);
 	return output;
 
 
+}
+
+
+
+union floatDec toDec(float16 x)
+{
+	unsigned char manBin = getMantissa(x);
+	         char expBin = getExponent(x);
+
+	
+
+
+}
+
+
+
+//return 1 if val1 > val2
+int comp(float16 val1, float16 val2)
+{
+	short val1Exponent = getExponent(val1);
+	short val2Exponent = getExponent(val2);
+
+	short val1Mantissa = getMantissa(val1);
+	short val2Mantissa = getMantissa(val2);
+
+	if (val1Exponent != val2Exponent)
+		return val1Exponent > val2Exponent;
+	else
+		return val1Mantissa > val2Mantissa;
 }

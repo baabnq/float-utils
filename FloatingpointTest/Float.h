@@ -4,6 +4,8 @@
 
 typedef unsigned short float16;
 
+#define px(x)			printf("%x\n", x);
+
 
 #define upper16			0b1111111100000000
 #define posNaN			0b0011111110000000
@@ -17,6 +19,20 @@ typedef unsigned short float16;
 #define MIN_SIGNED_CHAR -(1 << (8 - 1))
 
 
+#define PI 0b0111110101001001
+
+union floatDec
+{
+	struct 
+	{
+		char man;
+		char exp;
+	} parts;
+
+	unsigned short value;
+};
+
+
 void printFp(float16 value);
 
 unsigned char getMantissa(float16 fpValue);
@@ -28,9 +44,15 @@ void setExponent(float16* fpValue,          char newValue);
 float16 value2fp(unsigned short value);
 short fp2value(float16 fpValue);
 
+void shs(float16* fpValue, short offset);
+void shg(float16* fpValue, short offset);
+
 void normalizeAndSet(float16* fpValue, unsigned char mantissa, short exponent);
 float16 add(float16 val1, float16 val2);
 float16 mul(float16 val1, float16 val2);
 float16 div(float16 val1, float16 val2);
+
+float16 pow10(float16 x);
+float16 root10(float16 x);
 
 #endif
