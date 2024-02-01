@@ -114,20 +114,13 @@ short fp2value(float16 fpValue)
 {
 	unsigned char mantissa = getMantissa(fpValue);
 	  signed char exponent = getExponent(fpValue);
-	short output = 0;
 
-	if (exponent < 0)
-	{
-		output = (mantissa >> (-exponent));
 
-	}
-	else
-	{
-		output = (mantissa << exponent);
-	}
+	short output = exponent >= 0 ?
+		(mantissa << exponent) :
+		(mantissa >> (-exponent));
 
-	if (fpValue & SIGN_MASK) output = -output;
-	return output;
+	return (fpValue & SIGN_MASK) ? -output : output;
 }
 
 
