@@ -1,17 +1,8 @@
-#pragma warning (disable : 4996 )
 
 #include <stdio.h>
-#include "Float.h"
 #include <stdbool.h>
 
-int mainOFF()
-{
-	//float16 f = root10(value2fp(1000));
-	//printf("(int)f: %hu\n", f);
-	//printFp(f);
-
-	//return 0;
-}
+#include "Float.h"
 
 
 union floatCast

@@ -52,7 +52,7 @@ float16 add(float16 val1, float16 val2);
 float16 mul(float16 val1, float16 val2);
 float16 div(float16 val1, float16 val2);
 
-float16 pow10(float16 x);
-float16 root10(float16 x);
+int comp(float16 big, float16 small);
+
 
 #endif

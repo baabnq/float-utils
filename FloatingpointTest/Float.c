@@ -25,7 +25,7 @@ void printFp(float16 value)
 	float absVal = man * pow(2.0f, exp);
 	float val = value & SIGN_MASK ? -absVal : absVal;
 
-	printf("Value: %f\n", val);
+	printf("Value: %f\n\n", val);
 }
 
 
@@ -211,8 +211,14 @@ float16 mul(float16 val1, float16 val2)
 	short val1Mantissa = (short)getMantissa(val1);
 	short val2Mantissa = (short)getMantissa(val2);
 
-	         short outputExponent = getExponent(val1) + getExponent(val2);
+	         short outputExponent = getExponent(val1) + getExponent(val2);             
 	unsigned short outputMantissa = val1Mantissa * val2Mantissa;
+    
+    if (val1 == value2fp(0)) return val1;
+    if (val2 == value2fp(0)) return val2;
+    
+    //cap exponent
+    if (outputExponent < -128) return value2fp(0);
 
 	short sign = (val1 & SIGN_MASK) ^ (val2 & SIGN_MASK);
 
@@ -238,8 +244,6 @@ float16 div(float16 val1, float16 val2)
 
 	short val1Exponent = getExponent(val1) - 8;
 	short val2Exponent = getExponent(val2);
-	printf("%d\n", val1Exponent);
-	printf("%d\n", val2Exponent);
 
 	short outputExponent = val1Exponent - val2Exponent;
 	unsigned short outputMantissa = val1Mantissa / val2Mantissa;
@@ -252,27 +256,14 @@ float16 div(float16 val1, float16 val2)
 }
 
 
-
-union floatDec toDec(float16 x)
-{
-	unsigned char manBin = getMantissa(x);
-	         char expBin = getExponent(x);
-
-	
-
-
-}
-
-
-
 //return 1 if val1 > val2
-int comp(float16 val1, float16 val2)
+int comp(float16 big, float16 small)
 {
-	short val1Exponent = getExponent(val1);
-	short val2Exponent = getExponent(val2);
+	short val1Exponent = getExponent(big);
+	short val2Exponent = getExponent(small);
 
-	short val1Mantissa = getMantissa(val1);
-	short val2Mantissa = getMantissa(val2);
+	short val1Mantissa = getMantissa(big);
+	short val2Mantissa = getMantissa(small);
 
 	if (val1Exponent != val2Exponent)
 		return val1Exponent > val2Exponent;
