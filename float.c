@@ -134,13 +134,15 @@ float16 value2fp(unsigned short value)
 
 short fp2value(float16 fpValue)
 {
-	unsigned char mantissa = getMantissa(fpValue);
-	  signed char exponent = getExponent(fpValue);
+	uint8_t mantissa = getMantissa(fpValue);
+     int8_t exponent = getExponent(fpValue);
 
+    uint8_t exponent_abs = abs(exponent);
+    uint8_t exponent_eff = exponent_abs < 16 ? exponent_abs : 16;
 
 	short output = exponent >= 0 ?
-		(mantissa << exponent) :
-		(mantissa >> (-exponent));
+		(mantissa << exponent_eff) :
+		(mantissa >> exponent_eff);
 
 	return (fpValue & SIGN_MASK) ? -output : output;
 }

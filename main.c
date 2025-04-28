@@ -26,6 +26,10 @@ float16 encode(float in)
         };
     } parts = (union ieee_decompose)in;
 
+
+    //true absolute zero
+    if (in == 0.0f)
+        return value2fp(0); 
     
 
     float16 out = 0;
