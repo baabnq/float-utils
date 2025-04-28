@@ -39,15 +39,15 @@ void setExponent(float16* fpValue,          char newValue);
 float16 value2fp(unsigned short value);
 short fp2value(float16 fpValue);
 
-void shs(float16* fpValue, short offset);
-void shg(float16* fpValue, short offset);
+void fshs(float16* fpValue, short offset);
+void fshg(float16* fpValue, short offset);
 
 void normalizeAndSet(float16* fpValue, unsigned char mantissa, short exponent);
-float16 add(float16 val1, float16 val2);
-float16 mul(float16 val1, float16 val2);
-float16 div(float16 val1, float16 val2);
+float16 fadd(float16 val1, float16 val2);
+float16 fmul(float16 val1, float16 val2);
+float16 fdiv(float16 val1, float16 val2);
 
-int comp(float16 big, float16 small);
+int fcomp(float16 big, float16 small);
 
 
 
@@ -117,13 +117,13 @@ void invShort(short* value)
 }
 
 //fpValue >>= offset;
-void shs(float16* fpValue, short offset)
+void fshs(float16* fpValue, short offset)
 {
 	setExponent(fpValue, getExponent(*fpValue) - offset);
 }
 
 //fpValue <<= offset;
-void shg(float16* fpValue, short offset)
+void fshg(float16* fpValue, short offset)
 {
 	setExponent(fpValue, getExponent(*fpValue) + offset);
 }
@@ -195,7 +195,7 @@ void normalizeAndSet(float16* fpValue, unsigned char mantissa, short exponent)
 }
 
 
-float16 add(float16 val1, float16 val2)
+float16 fadd(float16 val1, float16 val2)
 {
 	float16 valLow = 0;
 	float16 valBig = 0;
@@ -251,7 +251,7 @@ float16 add(float16 val1, float16 val2)
 }
 
 
-float16 mul(float16 val1, float16 val2)
+float16 fmul(float16 val1, float16 val2)
 {
 	short val1Mantissa = (short)getMantissa(val1);
 	short val2Mantissa = (short)getMantissa(val2);
@@ -282,7 +282,7 @@ float16 mul(float16 val1, float16 val2)
 
 
 //does val1 / val2
-float16 div(float16 val1, float16 val2)
+float16 fdiv(float16 val1, float16 val2)
 {
 	unsigned short val1Mantissa = ((short)getMantissa(val1)) << 8;
 	unsigned short val2Mantissa = (short)getMantissa(val2);
@@ -302,7 +302,7 @@ float16 div(float16 val1, float16 val2)
 
 
 //return 1 if val1 > val2
-int comp(float16 big, float16 small)
+int fcomp(float16 big, float16 small)
 {
 	short val1Exponent = getExponent(big);
 	short val2Exponent = getExponent(small);

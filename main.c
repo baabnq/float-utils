@@ -1,6 +1,8 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #include "float.c"
 
@@ -20,15 +22,38 @@ union floatCast
 
 int main(int argc, char* argv[])
 {
-	//simple converter
-	if (argc != 3)
-	{
-		printf("Invaild arguments\n");
-		return 0;
-	}
+
+    int opt;
+    char* param = 0;
+    enum
+    {
+        PARAM_MODE_ENCODE,
+        PARAM_MODE_DECODE,
+    } mode;
+
+    while ((opt = getopt(argc, argv, "de")) != -1)
+        switch(opt)
+        {
+            case 'd': mode = PARAM_MODE_DECODE; break;
+            case 'e': mode = PARAM_MODE_ENCODE; break;
+            default:
+                fprintf(stderr, "Usage: %s [-e real] [-d float]\n", argv[0]);
+                exit(EXIT_FAILURE); 
+        }
 
 
-	char mode = *argv[1];
+    switch (mode)
+    {
+        case PARAM_MODE_ENCODE:
+            printf("encode\n");
+            break;
+        case PARAM_MODE_DECODE:
+            printf("decode\n");
+            break;
+    }
+
+    return 0;
+
 	float16 f = 0;
 	union floatCast val;
 
