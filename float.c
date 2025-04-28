@@ -52,29 +52,6 @@ int fcomp(float16 big, float16 small);
 
 
 
-
-
-
-
-
-void printFp(float16 value)
-{
-	printf("Mantissa: %d\n", getMantissa(value));
-	printf("Exponent: %d\n", getExponent(value));
-	printf("Sign    : %d\n", value & SIGN_MASK ? 1 : 0);
-	printf("\n");
-
-	unsigned char man = getMantissa(value);
-	         char exp = getExponent(value);
-
-	float absVal = man * pow(2.0f, exp);
-	float val = value & SIGN_MASK ? -absVal : absVal;
-
-	printf("Value: %f\n\n", val);
-}
-
-
-
 unsigned char getMantissa(float16 fpValue)
 {
 	return (char)((fpValue & MANTISSA_MASK) | 1 << (MANTISSA_SIZE - 1));

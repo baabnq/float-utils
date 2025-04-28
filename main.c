@@ -3,90 +3,140 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "float.c"
 
 
-union floatCast
+
+
+
+
+
+float16 encode(float in)
 {
-	float f;
-	struct
-	{
-		unsigned int mantisa  : 23;
-		unsigned int exponent : 8;
-		unsigned int sign     : 1;
-	} parts;
-};
+    union ieee_decompose
+    {
+        float encoded;
+        struct 
+        {
+            uint32_t man : 23;
+            uint32_t exp : 8;
+            uint32_t sgn : 1;
+        };
+    } parts = (union ieee_decompose)in;
+
+    
+
+    float16 out = 0;
+    setMantissa(&out, parts.man >> (23 - 7));
+    setExponent(&out, parts.exp - 127 - 7);
+    out |= parts.sgn ? SIGN_MASK : 0;
+
+    return out;
+}
+
+
+float decode(float16 in)
+{
+	uint16_t man = getMantissa(in);
+     int16_t exp = getExponent(in);
+
+    float sign = (in & SIGN_MASK ? -1 : 1);
+    return man * pow(2.0f, exp) * sign;
+}
+
+
+float decompose(float16 value)
+{
+	printf("mantissa: %d\n", getMantissa(value));
+	printf("exponent: %d\n", getExponent(value));
+	printf("sign    : %c\n", value & SIGN_MASK ? '-' : '+');
+	printf("\n");
+
+	printf("decoded: %f\n\n", decode(value));
+}
+
+
+
+void usage(char* name)
+{
+    fprintf(stderr, "Usage: %s [-h] [-e real] [-d float]\n", name);
+    exit(EXIT_FAILURE); 
+}
+
 
 
 
 int main(int argc, char* argv[])
 {
 
-    int opt;
-    char* param = 0;
     enum
     {
+        PARAM_MODE_DEFAULT,
         PARAM_MODE_ENCODE,
         PARAM_MODE_DECODE,
-    } mode;
+    } mode = PARAM_MODE_DEFAULT;
 
-    while ((opt = getopt(argc, argv, "de")) != -1)
-        switch(opt)
+    const char* argfmt = "hd:e:";
+    float real;
+    float16 code;
+
+
+    while (true)
+        switch(getopt(argc, argv, argfmt))
         {
-            case 'd': mode = PARAM_MODE_DECODE; break;
-            case 'e': mode = PARAM_MODE_ENCODE; break;
+            case -1: goto arg_parse_done;
+            case 'e':
+                mode = PARAM_MODE_ENCODE;
+                sscanf(optarg, "%f", &real);
+                break;
+            case 'd':
+                mode = PARAM_MODE_DECODE;
+                sscanf(optarg, "%hu", &code);
+                break;
+
+            case 'h':
             default:
-                fprintf(stderr, "Usage: %s [-e real] [-d float]\n", argv[0]);
-                exit(EXIT_FAILURE); 
+                usage(argv[0]);
         }
+    arg_parse_done:;
 
 
-    switch (mode)
-    {
-        case PARAM_MODE_ENCODE:
-            printf("encode\n");
-            break;
-        case PARAM_MODE_DECODE:
-            printf("decode\n");
-            break;
-    }
-
-    return 0;
-
-	float16 f = 0;
-	union floatCast val;
 
 	switch (mode)
 	{
-	case 'f':; //to float
-		//"ignoring return value of sscanf", how 'bout that
-		sscanf(argv[2], "%f", &(val.f));
+        case PARAM_MODE_ENCODE:
+            code = encode(real);
+            printf("--- overview ---\n");
+            printf("real: %f\n", real);
+            printf("code: %hu\n", code);
+            printf("native: %hu\n", fp2value(code));
 
-		setMantissa(&f, val.parts.mantisa >> (23 - 7));
-		setExponent(&f, val.parts.exponent - 127 - 7);
-		f |= val.parts.sign ? SIGN_MASK : 0;
+            printf("\n");
+            printf("--- encoding decomposition  ---\n");
+            decompose(code);
 
-		//f = value2fp(val);
-		printf("val:    %f\n", val.f);
-		printf("(int)f: %hu\n", f);
+            printf("--- advanced ---\n");
+            printf("encoding error: %f\n", fabs(decode(code) - real));
 
-		printf("\n\n--- details ---\n");
-		printFp(f);
-		break;
+            break;
 
-	case 'v':; //to value
-		sscanf(argv[2], "%hu", &f);
+        case PARAM_MODE_DECODE:
+            real = decode(code);
+            printf("--- overview ---\n");
+            printf("real: %f\n", real);
+            printf("code: %hu\n", code);
+            printf("native: %hu\n", fp2value(code));
 
-		unsigned short v = fp2value(f);
-		printf("(int)f: %hu\n", f);
-		printf("val: %hu\n", v);
+            printf("\n");
+            printf("--- encoding decomposition  ---\n");
+            decompose(code);
 
-		printf("\n\n--- details ---\n");
-		printFp(f);
-
-		break;
-
+            break;
+            
+        case PARAM_MODE_DEFAULT:
+            usage(argv[0]);
 
 	}
 
