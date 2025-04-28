@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdbool.h>
 
-#include "Float.h"
+#include "float.c"
 
 
 union floatCast
