@@ -141,7 +141,7 @@ int main(int argc, char* argv[])
             {
                 printf("--- advanced ---\n");
                 float errFull = fabs(decode(code) - real);
-                float errRate = errFull / real;
+                float errRate = errFull / fabs(real);
                 float accRate = 1 - errRate;
 
                 #define precent_render(x) (x * 100.0f)
