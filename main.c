@@ -140,7 +140,15 @@ int main(int argc, char* argv[])
             if (behaviour == PARAM_BEHAVE_ENCODE)
             {
                 printf("--- advanced ---\n");
-                printf("encoding error: %f\n", fabs(decode(code) - real));
+                float errFull = fabs(decode(code) - real);
+                float errRate = errFull / real;
+                float accRate = 1 - errRate;
+
+                #define precent_render(x) (x * 100.0f)
+                printf("encoding error full: %f\n\n", errFull);
+                printf("encoding error rate: %f%%\n", precent_render(errRate));
+                printf("encoding accuracy  : %f%%\n", precent_render(accRate));
+                #undef precent_render
             }
 
             break;
